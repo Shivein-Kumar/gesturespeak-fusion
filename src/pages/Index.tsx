@@ -37,6 +37,7 @@ export default function Index() {
   });
   const [showSettings, setShowSettings] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [videoLoaded, setVideoLoaded] = useState(false);
   
   // Refs
   const videoRef = useRef(null);
@@ -47,9 +48,16 @@ export default function Index() {
   useEffect(() => {
     const setupCamera = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { facingMode: 'environment' } 
-        });
+        const constraints = { 
+          video: { 
+            facingMode: 'environment',
+            width: { ideal: 640 },
+            height: { ideal: 480 } 
+          } 
+        };
+        
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           streamRef.current = stream;
@@ -76,6 +84,12 @@ export default function Index() {
       }
     };
   }, [translateMode]);
+
+  // Handle video element loaded metadata
+  const handleVideoMetadataLoaded = () => {
+    setVideoLoaded(true);
+    console.log("Video metadata loaded - dimensions:", videoRef.current.videoWidth, "x", videoRef.current.videoHeight);
+  };
 
   // Enhanced Text-to-Speech function
   const speakText = () => {
@@ -125,9 +139,17 @@ export default function Index() {
         const video = videoRef.current;
         const canvas = canvasRef.current;
         
-        // Set the canvas dimensions to match the video
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+        if (video.videoWidth === 0 || video.videoHeight === 0) {
+          console.error("Video dimensions are not available yet");
+          
+          // Use fixed dimensions as fallback
+          canvas.width = 640;
+          canvas.height = 480;
+        } else {
+          // Set the canvas dimensions to match the video
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+        }
         
         console.log(`Canvas dimensions set to ${canvas.width}x${canvas.height}`);
         
@@ -182,7 +204,16 @@ export default function Index() {
 
   const requestCameraPermission = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const constraints = { 
+        video: { 
+          facingMode: 'environment',
+          width: { ideal: 640 },
+          height: { ideal: 480 } 
+        } 
+      };
+      
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
@@ -274,7 +305,9 @@ export default function Index() {
                                 autoPlay 
                                 playsInline
                                 muted
+                                onLoadedMetadata={handleVideoMetadataLoaded}
                                 className="w-full h-full object-cover"
+                                style={{ backgroundColor: "#000" }}
                               />
                               <canvas ref={canvasRef} className="hidden" />
                             </>
